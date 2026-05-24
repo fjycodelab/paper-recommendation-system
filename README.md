@@ -9,6 +9,7 @@
 - Java: Spring Boot, MyBatis-Plus, Spring WebClient
 - 数据存储: MySQL, Redis
 - 算法服务: Python, FastAPI, PyTorch
+- 前端展示: 暂定 Vue/Vite + 成熟组件库，保持简洁展示
 - 协作方式: spec -> plan -> task -> test -> review -> lesson/ADR
 
 ## MVP 范围
@@ -18,6 +19,7 @@
 3. 基于摘要、关键词、研究方向生成语义向量并计算相似论文。
 4. Java 服务调用 Python 推理服务，生成个性化推荐结果。
 5. 基于 Redis 缓存热门论文、用户偏好标签和推荐结果。
+6. 提供简洁前端页面展示登录、论文列表、热门论文、偏好标签和推荐结果。
 
 ## 当前状态
 
