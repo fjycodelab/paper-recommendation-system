@@ -1,0 +1,58 @@
+# Secrets and local config
+.env
+.env.*
+!.env.example
+application-local.yml
+application-local.yaml
+*.key
+*.pem
+
+# Java / Spring Boot
+target/
+build/
+.gradle/
+out/
+*.class
+*.jar
+*.war
+*.ear
+
+# Maven / Gradle transient files
+.mvn/timing.properties
+dependency-reduced-pom.xml
+
+# Python / FastAPI / PyTorch
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
+*.pt
+*.pth
+*.onnx
+*.ckpt
+
+# Logs and runtime data
+logs/
+*.log
+*.pid
+*.tmp
+*.bak
+*.dump
+
+# IDE / OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Node artifacts if a small UI is added later
+node_modules/
+dist/
