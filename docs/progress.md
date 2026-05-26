@@ -14,12 +14,12 @@
 - [x] 3a: 编写技术方案 plan 草稿
 - [x] 3b: plan review 通过，开始按任务实施
 
-启动于: 2026-05-26。当前步骤: T2 收藏和评分后端强状态 API。
+启动于: 2026-05-26。当前步骤: T3 用户感知论文列表、详情、我的收藏。
 
 Plan 任务拆解:
 
 - [x] T1: Kafka 依赖、配置与数据库结构
-- [ ] T2: 收藏和评分后端强状态 API
+- [x] T2: 收藏和评分后端强状态 API
 - [ ] T3: 用户感知论文列表、详情、我的收藏
 - [ ] T4: Kafka 行为生产者、消费者和幂等落库
 - [ ] T5: 隐式行为接入业务入口和最近浏览 Redis
@@ -36,6 +36,14 @@ Spec 003 T1 验收记录:
 - 新增 `behavior/entity` 和 `behavior/mapper` 基础结构，并把 `com.lencode.paper.behavior.mapper` 加入 MyBatis-Plus 扫描。
 - 验证: Java `mvn test` 通过，`Tests run: 95, Failures: 0, Errors: 0, Skipped: 4`。
 - 旧 Repository 名称检查通过: 未发现 `ResearchTagRepository`、`PaperRepository`、`PaperTagRepository`、`UserRepository` 残留。
+
+Spec 003 T2 验收记录:
+
+- 新增 `PaperPreferenceService` 和 `PaperPreferenceController`，提供收藏、取消收藏和 1-5 星评分 API。
+- 收藏使用 `paper_favorites` 唯一键 upsert，取消收藏保留记录并更新为 `CANCELLED`；评分使用 `paper_ratings` 唯一键 upsert。
+- 收藏和评分在写入前校验论文必须存在且未软删除；非法评分返回明确错误。
+- 新增 service/controller 测试，覆盖收藏、取消收藏、重复状态读取、非法评分、论文不存在和 API 响应。
+- 验证: Java `mvn test` 通过，`Tests run: 104, Failures: 0, Errors: 0, Skipped: 4`。
 
 ---
 
