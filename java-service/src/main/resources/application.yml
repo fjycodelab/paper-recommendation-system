@@ -1,0 +1,33 @@
+server:
+  port: ${JAVA_SERVICE_PORT:8080}
+
+spring:
+  application:
+    name: paper-java-service
+  datasource:
+    url: ${APP_DB_URL:jdbc:mysql://127.0.0.1:3306/paper_recommendation?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${APP_DB_USERNAME:}
+    password: ${APP_DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      connection-timeout: 2000
+      validation-timeout: 1000
+      maximum-pool-size: 5
+  redis:
+    host: ${APP_REDIS_HOST:127.0.0.1}
+    port: ${APP_REDIS_PORT:6379}
+    timeout: ${APP_REDIS_TIMEOUT:2s}
+
+app:
+  python-infer:
+    base-url: ${APP_PYTHON_INFER_URL:http://127.0.0.1:8001}
+    health-path: ${APP_PYTHON_INFER_HEALTH_PATH:/health}
+    timeout-ms: ${APP_PYTHON_INFER_TIMEOUT_MS:1500}
+  paper:
+    download-dir: ${APP_PAPER_DOWNLOAD_DIR:D:/code/codex_2/lencode/paper-downloads}
+    download-timeout-ms: ${APP_PAPER_DOWNLOAD_TIMEOUT_MS:8000}
+    arxiv:
+      api-url: ${APP_ARXIV_API_URL:https://export.arxiv.org/api/query}
+      default-query: ${APP_ARXIV_DEFAULT_QUERY:cat:cs.IR OR cat:cs.AI OR cat:cs.LG OR cat:cs.CL}
+      max-results: ${APP_ARXIV_MAX_RESULTS:100}
+      timeout-ms: ${APP_ARXIV_TIMEOUT_MS:8000}

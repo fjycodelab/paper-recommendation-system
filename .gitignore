@@ -4,6 +4,8 @@
 !.env.example
 application-local.yml
 application-local.yaml
+application-*.local.yml
+application-*.local.yaml
 *.key
 *.pem
 
@@ -33,6 +35,7 @@ htmlcov/
 .venv/
 venv/
 env/
+.python-version
 *.pt
 *.pth
 *.onnx
@@ -40,11 +43,15 @@ env/
 
 # Logs and runtime data
 logs/
+paper-downloads/
+paper-downloads-test/
 *.log
 *.pid
 *.tmp
 *.bak
 *.dump
+*.rdb
+appendonlydir/
 
 # IDE / OS
 .idea/
@@ -56,3 +63,9 @@ Thumbs.db
 # Node artifacts if a small UI is added later
 node_modules/
 dist/
+.vite/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
