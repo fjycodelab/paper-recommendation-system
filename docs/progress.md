@@ -6,15 +6,15 @@
 ## 进行中
 
 ### Spec 003: 用户收藏评分与行为记录
-对应 spec: 待创建 `docs/specs/003-user-behavior.md`
+对应 spec: [docs/specs/003-user-behavior.md](./specs/003-user-behavior.md)
 
-- [ ] 2a: 完成用户行为记录需求访谈
-- [ ] 2b: 写出 spec 草稿
-- [ ] 2c: spec review 通过并写入已决策约束
+- [x] 2a: 完成用户行为记录需求访谈
+- [x] 2b: 写出 spec 草稿
+- [x] 2c: spec review 通过并写入已决策约束
 - [ ] 3a: 编写技术方案 plan 草稿
 - [ ] 3b: plan review 通过，开始按任务实施
 
-启动于: 2026-05-26。当前步骤: 2a 需求访谈，先确认行为类型、记录粒度、前端入口、统计范围和验收标准。
+启动于: 2026-05-26。当前步骤: 3a 编写技术方案 plan 草稿。
 
 ---
 
@@ -137,6 +137,12 @@ Spec 001 追加约束记录:
 - 已决策: Spec 001 登录认证使用 Spring Security + Redis 简单 token，token 有效期 24 小时，不引入 JWT refresh token。
 - 已决策: Spec 001 用户表持久层使用 MyBatis-Plus Mapper，并保持正式 Spring Boot 分层包结构。
 - 已决策: Spec 001 管理员账号通过 SQL 初始化，账号 `fjy`，初始密码 `123456`。
+- 已决策: Spec 003 需要收藏、取消收藏和 1-5 星评分。
+- 已决策: Spec 003 搜索行为只保留关键词、作者、年份。
+- 已决策: Spec 003 重复浏览、搜索和点击按多次行为记录。
+- 已决策: Spec 003 管理端第一版只做全局统计，不展示用户级明细。
+- 已决策: Spec 003 使用 Redis 承载隐式行为队列或缓冲，不引入独立 MQ 依赖。
+- 已决策: Spec 003 不做推荐、embedding 和热门论文排序。
 
 ---
 
