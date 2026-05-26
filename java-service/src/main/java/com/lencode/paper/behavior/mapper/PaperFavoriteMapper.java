@@ -52,4 +52,7 @@ public interface PaperFavoriteMapper extends BaseMapper<PaperFavorite> {
             + "INNER JOIN papers p ON p.id = pf.paper_id AND p.status = 'ACTIVE' "
             + "WHERE pf.user_id = #{userId} AND pf.status = 'ACTIVE'")
     Long countActiveByUser(@Param("userId") Long userId);
+
+    @Select("SELECT COUNT(*) FROM paper_favorites WHERE status = 'ACTIVE'")
+    Long countActiveAll();
 }

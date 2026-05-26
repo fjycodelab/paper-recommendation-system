@@ -36,4 +36,10 @@ public interface PaperRatingMapper extends BaseMapper<PaperRating> {
     List<PaperRating> selectByUserAndPaperIds(
             @Param("userId") Long userId,
             @Param("paperIds") List<Long> paperIds);
+
+    @Select("SELECT COUNT(DISTINCT user_id) FROM paper_ratings")
+    Long countDistinctRatingUsers();
+
+    @Select("SELECT AVG(rating) FROM paper_ratings")
+    Double selectAverageRating();
 }

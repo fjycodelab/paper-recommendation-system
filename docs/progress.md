@@ -14,7 +14,7 @@
 - [x] 3a: 编写技术方案 plan 草稿
 - [x] 3b: plan review 通过，开始按任务实施
 
-启动于: 2026-05-26。当前步骤: T6 管理员全局行为统计、Redis 缓存和缓存重建锁。
+启动于: 2026-05-26。当前步骤: T7 前端收藏、评分、我的收藏和最近浏览。
 
 Plan 任务拆解:
 
@@ -23,7 +23,7 @@ Plan 任务拆解:
 - [x] T3: 用户感知论文列表、详情、我的收藏
 - [x] T4: Kafka 行为生产者、消费者和幂等落库
 - [x] T5: 隐式行为接入业务入口和最近浏览 Redis
-- [ ] T6: 管理员全局行为统计、Redis 缓存和缓存重建锁
+- [x] T6: 管理员全局行为统计、Redis 缓存和缓存重建锁
 - [ ] T7: 前端收藏、评分、我的收藏和最近浏览
 - [ ] T8: 前端行为上报和管理员统计面板
 - [ ] T9: 文档、叙事和端到端验收
@@ -77,6 +77,19 @@ Spec 003 T5 验收记录:
 - 下载入口在确认论文存在后记录 `DOWNLOAD_CLICK`，没有下载链接也计入一次下载入口点击。
 - 修正测试配置: 不再用 test-only `application.yml` 覆盖主配置，改为在集成测试上内联关闭 Kafka listener 自动启动。
 - 验证: Java `mvn test` 通过，`Tests run: 129, Failures: 0, Errors: 0, Skipped: 4`。
+- 旧 Repository 名称检查通过: 未发现 `ResearchTagRepository`、`PaperRepository`、`PaperTagRepository`、`UserRepository` 残留。
+
+Spec 003 T6 验收记录:
+
+- 新增 `GET /api/admin/behavior/stats` 管理员接口，继续复用 `/api/admin/**` 的 Spring Security 管理员鉴权。
+- 新增 `BehaviorStatsService`，聚合全局行为事件总数、事件类型分布、当前收藏总数、评分用户数、平均评分、详情浏览 Top 论文和下载点击 Top 论文。
+- `PaperBehaviorEventMapper` 新增事件总数、类型分布和按事件类型聚合 Top 论文查询；收藏和评分 Mapper 新增全局统计查询。
+- 统计结果优先读取 Redis `behavior:stats:global` 缓存，缓存命中时不访问 MySQL。
+- 缓存未命中时使用 `RedisLockService` 获取 `behavior:stats:rebuild:lock`，拿到锁的请求负责重建缓存并写入短 TTL。
+- 锁被占用且缓存仍为空时返回 `rebuilding=true` 的轻量响应，不重复压 MySQL，避免缓存击穿。
+- Redis 锁释放使用 Lua compare-and-delete，避免一个请求误删另一个请求刚获得的锁。
+- 新增 service/controller/lock 单测，覆盖缓存命中、缓存未命中重建、锁占用、空数据、管理员 200、普通用户 403 和未登录 401。
+- 验证: Java `mvn test` 通过，`Tests run: 140, Failures: 0, Errors: 0, Skipped: 4`。
 - 旧 Repository 名称检查通过: 未发现 `ResearchTagRepository`、`PaperRepository`、`PaperTagRepository`、`UserRepository` 残留。
 
 ---
