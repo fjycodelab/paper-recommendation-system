@@ -17,6 +17,17 @@ spring:
     host: ${APP_REDIS_HOST:127.0.0.1}
     port: ${APP_REDIS_PORT:6379}
     timeout: ${APP_REDIS_TIMEOUT:2s}
+  kafka:
+    bootstrap-servers: ${APP_KAFKA_BOOTSTRAP_SERVERS:127.0.0.1:9092}
+    producer:
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: ${APP_KAFKA_BEHAVIOR_GROUP_ID:paper-behavior-writer}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
 app:
   python-infer:
@@ -31,3 +42,10 @@ app:
       default-query: ${APP_ARXIV_DEFAULT_QUERY:cat:cs.IR OR cat:cs.AI OR cat:cs.LG OR cat:cs.CL}
       max-results: ${APP_ARXIV_MAX_RESULTS:100}
       timeout-ms: ${APP_ARXIV_TIMEOUT_MS:8000}
+  behavior:
+    topic: ${APP_BEHAVIOR_TOPIC:paper.behavior.events}
+    stats-cache-key: ${APP_BEHAVIOR_STATS_CACHE_KEY:behavior:stats:global}
+    stats-cache-ttl-seconds: ${APP_BEHAVIOR_STATS_CACHE_TTL_SECONDS:60}
+    stats-lock-key: ${APP_BEHAVIOR_STATS_LOCK_KEY:behavior:stats:rebuild:lock}
+    stats-lock-ttl-ms: ${APP_BEHAVIOR_STATS_LOCK_TTL_MS:10000}
+    recent-view-limit: ${APP_BEHAVIOR_RECENT_VIEW_LIMIT:50}

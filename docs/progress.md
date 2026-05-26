@@ -14,11 +14,11 @@
 - [x] 3a: 编写技术方案 plan 草稿
 - [x] 3b: plan review 通过，开始按任务实施
 
-启动于: 2026-05-26。当前步骤: T1 数据库结构、Kafka 依赖配置、实体和 Mapper。
+启动于: 2026-05-26。当前步骤: T2 收藏和评分后端强状态 API。
 
 Plan 任务拆解:
 
-- [ ] T1: Kafka 依赖、配置与数据库结构
+- [x] T1: Kafka 依赖、配置与数据库结构
 - [ ] T2: 收藏和评分后端强状态 API
 - [ ] T3: 用户感知论文列表、详情、我的收藏
 - [ ] T4: Kafka 行为生产者、消费者和幂等落库
@@ -27,6 +27,15 @@ Plan 任务拆解:
 - [ ] T7: 前端收藏、评分、我的收藏和最近浏览
 - [ ] T8: 前端行为上报和管理员统计面板
 - [ ] T9: 文档、叙事和端到端验收
+
+Spec 003 T1 验收记录:
+
+- 新增 `spring-kafka` 依赖，并在 `application.yml` 中配置 Kafka bootstrap、producer、consumer group 和序列化配置。
+- 新增 behavior 配置项: 行为 topic、统计缓存 key/TTL、统计缓存重建锁 key/TTL、最近浏览上限。
+- 新增 `sql/003-user-behavior.sql`，包含 `paper_favorites`、`paper_ratings`、`paper_behavior_events` 三张表。
+- 新增 `behavior/entity` 和 `behavior/mapper` 基础结构，并把 `com.lencode.paper.behavior.mapper` 加入 MyBatis-Plus 扫描。
+- 验证: Java `mvn test` 通过，`Tests run: 95, Failures: 0, Errors: 0, Skipped: 4`。
+- 旧 Repository 名称检查通过: 未发现 `ResearchTagRepository`、`PaperRepository`、`PaperTagRepository`、`UserRepository` 残留。
 
 ---
 
