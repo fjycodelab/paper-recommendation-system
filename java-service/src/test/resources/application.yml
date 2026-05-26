@@ -1,3 +1,0 @@
-app:
-  behavior:
-    consumer-auto-startup: false

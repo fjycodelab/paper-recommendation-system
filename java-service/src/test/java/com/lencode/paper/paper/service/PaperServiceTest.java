@@ -22,6 +22,7 @@ import com.lencode.paper.auth.vo.UserResponse;
 import com.lencode.paper.behavior.entity.PaperRating;
 import com.lencode.paper.behavior.mapper.PaperFavoriteMapper;
 import com.lencode.paper.behavior.mapper.PaperRatingMapper;
+import com.lencode.paper.behavior.service.RecentViewService;
 import com.lencode.paper.common.exception.BadRequestException;
 import com.lencode.paper.common.exception.NotFoundException;
 import com.lencode.paper.paper.dto.CreatePaperRequest;
@@ -42,12 +43,14 @@ class PaperServiceTest {
     private final ResearchTagMapper tagMapper = mock(ResearchTagMapper.class);
     private final PaperFavoriteMapper favoriteMapper = mock(PaperFavoriteMapper.class);
     private final PaperRatingMapper ratingMapper = mock(PaperRatingMapper.class);
+    private final RecentViewService recentViewService = mock(RecentViewService.class);
     private final PaperService paperService = new PaperService(
             paperMapper,
             paperTagMapper,
             tagMapper,
             favoriteMapper,
-            ratingMapper
+            ratingMapper,
+            recentViewService
     );
 
     @Test
@@ -272,6 +275,30 @@ class PaperServiceTest {
         assertThat(response.getItems()).allMatch(PaperResponse::isFavorited);
         assertThat(response.getItems().get(0).getRating()).isEqualTo(5);
         assertThat(response.getItems().get(1).getRating()).isNull();
+    }
+
+    @Test
+    void returnsRecentViewedPapersForUser() {
+        UserResponse user = new UserResponse(7L, "alice", "USER", "ACTIVE");
+        when(recentViewService.listRecentPaperIds(7L, 1, 10)).thenReturn(Arrays.asList(5L, 2L));
+        when(recentViewService.countRecentViews(7L)).thenReturn(2L);
+        when(paperMapper.selectActiveByIds(Arrays.asList(5L, 2L))).thenReturn(Arrays.asList(
+                paper(2L, "Second", "ACTIVE", 1L),
+                paper(5L, "Fifth", "ACTIVE", 1L)
+        ));
+        when(paperTagMapper.selectTagsByPaperId(2L)).thenReturn(Collections.emptyList());
+        when(paperTagMapper.selectTagsByPaperId(5L)).thenReturn(Collections.emptyList());
+        when(favoriteMapper.selectActivePaperIdsForUserAndPaperIds(7L, Arrays.asList(5L, 2L)))
+                .thenReturn(Arrays.asList(2L));
+        when(ratingMapper.selectByUserAndPaperIds(7L, Arrays.asList(5L, 2L)))
+                .thenReturn(Arrays.asList(rating(5L, 4)));
+
+        PaperPageResponse response = paperService.listRecentViews(1, 10, user);
+
+        assertThat(response.getTotal()).isEqualTo(2L);
+        assertThat(response.getItems()).extracting(PaperResponse::getId).containsExactly(5L, 2L);
+        assertThat(response.getItems().get(0).getRating()).isEqualTo(4);
+        assertThat(response.getItems().get(1).isFavorited()).isTrue();
     }
 
     @Test

@@ -29,7 +29,9 @@ import com.lencode.paper.auth.vo.LoginResponse;
 import com.lencode.paper.auth.vo.UserResponse;
 import com.lencode.paper.common.response.ApiError;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "app.behavior.consumer-auto-startup=false")
 class AuthIntegrationTest {
 
     @LocalServerPort

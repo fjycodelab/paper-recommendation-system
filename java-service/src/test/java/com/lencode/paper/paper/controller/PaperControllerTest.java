@@ -24,6 +24,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.lencode.paper.auth.dto.AuthenticatedUser;
 import com.lencode.paper.auth.service.AuthService;
 import com.lencode.paper.auth.vo.UserResponse;
+import com.lencode.paper.behavior.service.BehaviorTrackingService;
 import com.lencode.paper.common.exception.NotFoundException;
 import com.lencode.paper.config.BearerTokenAuthenticationFilter;
 import com.lencode.paper.config.JsonAccessDeniedHandler;
@@ -52,6 +53,9 @@ class PaperControllerTest {
 
     @MockBean
     private AuthService authService;
+
+    @MockBean
+    private BehaviorTrackingService trackingService;
 
     @Test
     void createsPaperForLoggedInUser() throws Exception {
@@ -119,6 +123,8 @@ class PaperControllerTest {
                         .param("abstractKeyword", "embedding"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].title").value("Search Result"));
+        verify(trackingService).recordSearch(any(Long.class), any(PaperSearchRequest.class));
+        verify(trackingService).recordTagFilter(eq(2L), eq(2L));
     }
 
     @Test
@@ -131,6 +137,7 @@ class PaperControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(9L))
                 .andExpect(jsonPath("$.title").value("A Paper"));
+        verify(trackingService).recordPaperDetailView(eq(2L), eq(9L));
     }
 
     @Test
@@ -162,6 +169,19 @@ class PaperControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(1L))
                 .andExpect(jsonPath("$.items[0].title").value("Favorite"));
+    }
+
+    @Test
+    void returnsRecentViewsForLoggedInUser() throws Exception {
+        stubLoggedInUser("token-user", user());
+        when(paperService.listRecentViews(eq(1), eq(10), any(UserResponse.class)))
+                .thenReturn(new PaperPageResponse(Arrays.asList(response(4L, "Recent", "ACTIVE")), 1L, 1, 10));
+
+        mockMvc.perform(get("/api/me/recent-views?page=1&pageSize=10")
+                        .header("Authorization", "Bearer token-user"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(1L))
+                .andExpect(jsonPath("$.items[0].title").value("Recent"));
     }
 
     @Test

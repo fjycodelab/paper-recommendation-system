@@ -19,6 +19,7 @@ import com.lencode.paper.auth.vo.UserResponse;
 import com.lencode.paper.behavior.entity.PaperRating;
 import com.lencode.paper.behavior.mapper.PaperFavoriteMapper;
 import com.lencode.paper.behavior.mapper.PaperRatingMapper;
+import com.lencode.paper.behavior.service.RecentViewService;
 import com.lencode.paper.common.exception.BadRequestException;
 import com.lencode.paper.common.exception.NotFoundException;
 import com.lencode.paper.paper.dto.CreatePaperRequest;
@@ -47,18 +48,21 @@ public class PaperService {
     private final ResearchTagMapper tagMapper;
     private final PaperFavoriteMapper favoriteMapper;
     private final PaperRatingMapper ratingMapper;
+    private final RecentViewService recentViewService;
 
     public PaperService(
             PaperMapper paperMapper,
             PaperTagMapper paperTagMapper,
             ResearchTagMapper tagMapper,
             PaperFavoriteMapper favoriteMapper,
-            PaperRatingMapper ratingMapper) {
+            PaperRatingMapper ratingMapper,
+            RecentViewService recentViewService) {
         this.paperMapper = paperMapper;
         this.paperTagMapper = paperTagMapper;
         this.tagMapper = tagMapper;
         this.favoriteMapper = favoriteMapper;
         this.ratingMapper = ratingMapper;
+        this.recentViewService = recentViewService;
     }
 
     @Transactional
@@ -142,19 +146,21 @@ public class PaperService {
 
         int offset = (safePage - 1) * safePageSize;
         List<Long> paperIds = nullToEmpty(favoriteMapper.selectActivePaperIdsByUser(userId, safePageSize, offset));
-        List<PaperResponse> items = Collections.emptyList();
-        if (!paperIds.isEmpty()) {
-            Map<Long, Paper> paperById = nullToEmpty(paperMapper.selectActiveByIds(paperIds))
-                    .stream()
-                    .collect(Collectors.toMap(Paper::getId, paper -> paper, (left, right) -> left, HashMap::new));
-            items = paperIds.stream()
-                    .map(paperById::get)
-                    .filter(Objects::nonNull)
-                    .map(paper -> PaperResponse.from(paper, loadTagResponses(paper.getId())))
-                    .collect(Collectors.toList());
-        }
+        List<PaperResponse> items = loadActiveResponsesInOrder(paperIds);
         Long total = favoriteMapper.countActiveByUser(userId);
         return new PaperPageResponse(enrichResponses(items, userId), total == null ? 0L : total, safePage, safePageSize);
+    }
+
+    public PaperPageResponse listRecentViews(Integer page, Integer pageSize, UserResponse user) {
+        Long userId = requireUserId(user);
+        int safePage = page == null ? DEFAULT_PAGE : page;
+        int safePageSize = pageSize == null ? DEFAULT_PAGE_SIZE : pageSize;
+        validatePage(safePage, safePageSize);
+
+        List<Long> paperIds = recentViewService.listRecentPaperIds(userId, safePage, safePageSize);
+        List<PaperResponse> items = loadActiveResponsesInOrder(paperIds);
+        long total = recentViewService.countRecentViews(userId);
+        return new PaperPageResponse(enrichResponses(items, userId), total, safePage, safePageSize);
     }
 
     @Transactional
@@ -286,6 +292,20 @@ public class PaperService {
             return response;
         }
         return enrichResponses(Collections.singletonList(response), userId).get(0);
+    }
+
+    private List<PaperResponse> loadActiveResponsesInOrder(List<Long> paperIds) {
+        if (paperIds == null || paperIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Map<Long, Paper> paperById = nullToEmpty(paperMapper.selectActiveByIds(paperIds))
+                .stream()
+                .collect(Collectors.toMap(Paper::getId, paper -> paper, (left, right) -> left, HashMap::new));
+        return paperIds.stream()
+                .map(paperById::get)
+                .filter(Objects::nonNull)
+                .map(paper -> PaperResponse.from(paper, loadTagResponses(paper.getId())))
+                .collect(Collectors.toList());
     }
 
     private List<PaperResponse> enrichResponses(List<PaperResponse> responses, Long userId) {

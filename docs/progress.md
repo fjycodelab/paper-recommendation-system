@@ -14,7 +14,7 @@
 - [x] 3a: 编写技术方案 plan 草稿
 - [x] 3b: plan review 通过，开始按任务实施
 
-启动于: 2026-05-26。当前步骤: T5 隐式行为接入业务入口和最近浏览 Redis。
+启动于: 2026-05-26。当前步骤: T6 管理员全局行为统计、Redis 缓存和缓存重建锁。
 
 Plan 任务拆解:
 
@@ -22,7 +22,7 @@ Plan 任务拆解:
 - [x] T2: 收藏和评分后端强状态 API
 - [x] T3: 用户感知论文列表、详情、我的收藏
 - [x] T4: Kafka 行为生产者、消费者和幂等落库
-- [ ] T5: 隐式行为接入业务入口和最近浏览 Redis
+- [x] T5: 隐式行为接入业务入口和最近浏览 Redis
 - [ ] T6: 管理员全局行为统计、Redis 缓存和缓存重建锁
 - [ ] T7: 前端收藏、评分、我的收藏和最近浏览
 - [ ] T8: 前端行为上报和管理员统计面板
@@ -64,6 +64,19 @@ Spec 003 T4 验收记录:
 - 新增 test-only 配置关闭 Kafka listener 自动启动，避免单元测试在本机未启动 Kafka 时产生连接噪音；生产配置默认仍自动启动。
 - 新增 Producer/Consumer 单测，覆盖消息生成、Kafka 发送参数、非法消息、消费落库和重复 `eventId` 幂等。
 - 验证: Java `mvn test` 通过，`Tests run: 116, Failures: 0, Errors: 0, Skipped: 4`。
+- 旧 Repository 名称检查通过: 未发现 `ResearchTagRepository`、`PaperRepository`、`PaperTagRepository`、`UserRepository` 残留。
+
+Spec 003 T5 验收记录:
+
+- 新增 `BehaviorTrackingService`，把搜索、标签筛选、论文详情浏览、下载入口点击和外部 URL 点击统一封装成行为消息。
+- `GET /api/papers` 在返回列表后记录搜索和标签筛选行为；搜索行为只保留关键词、作者和年份，不记录来源。
+- `GET /api/papers/{id}` 在详情读取成功后记录浏览行为，并同步写入 Redis 最近浏览 ZSet。
+- 新增 `POST /api/behavior-events`，第一版用于前端上报 `EXTERNAL_URL_CLICK`，避免外部跳转绕过后端时丢失点击行为。
+- 新增 `GET /api/me/recent-views`，从 Redis 最近浏览按时间倒序取论文 id，再复用论文响应聚合收藏和评分状态。
+- 最近浏览 Redis 写入、裁剪和读取失败时只记录日志并降级为空结果，不阻断论文主流程。
+- 下载入口在确认论文存在后记录 `DOWNLOAD_CLICK`，没有下载链接也计入一次下载入口点击。
+- 修正测试配置: 不再用 test-only `application.yml` 覆盖主配置，改为在集成测试上内联关闭 Kafka listener 自动启动。
+- 验证: Java `mvn test` 通过，`Tests run: 129, Failures: 0, Errors: 0, Skipped: 4`。
 - 旧 Repository 名称检查通过: 未发现 `ResearchTagRepository`、`PaperRepository`、`PaperTagRepository`、`UserRepository` 残留。
 
 ---

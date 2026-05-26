@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.client.ResourceAccessException;
 
 import com.lencode.paper.auth.vo.UserResponse;
+import com.lencode.paper.behavior.service.BehaviorTrackingService;
 import com.lencode.paper.common.exception.NotFoundException;
 import com.lencode.paper.download.dto.DownloadedResource;
 import com.lencode.paper.download.entity.PaperDownloadAttempt;
@@ -32,6 +33,7 @@ class PaperDownloadServiceTest {
     private final PaperMapper paperMapper = mock(PaperMapper.class);
     private final PaperDownloadAttemptMapper attemptMapper = mock(PaperDownloadAttemptMapper.class);
     private final PaperDownloadClient downloadClient = mock(PaperDownloadClient.class);
+    private final BehaviorTrackingService trackingService = mock(BehaviorTrackingService.class);
 
     @TempDir
     Path downloadDir;
@@ -47,6 +49,7 @@ class PaperDownloadServiceTest {
         assertThat(response.getStatus()).isEqualTo("NO_URL");
         assertThat(response.getFailureReason()).isEqualTo("论文没有下载链接");
         assertThat(response.getExternalUrl()).isNull();
+        verify(trackingService).recordDownloadClick(7L, 1L);
         verify(downloadClient, never()).download(any(String.class));
     }
 
@@ -117,6 +120,7 @@ class PaperDownloadServiceTest {
         assertThatThrownBy(() -> service.attempt(404L, user()))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessage("论文不存在");
+        verify(trackingService, never()).recordDownloadClick(any(Long.class), any(Long.class));
         verify(attemptMapper, never()).insert(any(PaperDownloadAttempt.class));
     }
 
@@ -141,6 +145,7 @@ class PaperDownloadServiceTest {
                 paperMapper,
                 attemptMapper,
                 downloadClient,
+                trackingService,
                 downloadDir.toString()
         );
     }

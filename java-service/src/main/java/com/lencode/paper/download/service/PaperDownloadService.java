@@ -17,6 +17,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
 
 import com.lencode.paper.auth.vo.UserResponse;
+import com.lencode.paper.behavior.service.BehaviorTrackingService;
 import com.lencode.paper.common.exception.BadRequestException;
 import com.lencode.paper.common.exception.NotFoundException;
 import com.lencode.paper.download.dto.DownloadStatus;
@@ -36,16 +37,19 @@ public class PaperDownloadService {
     private final PaperMapper paperMapper;
     private final PaperDownloadAttemptMapper attemptMapper;
     private final PaperDownloadClient downloadClient;
+    private final BehaviorTrackingService trackingService;
     private final Path downloadRoot;
 
     public PaperDownloadService(
             PaperMapper paperMapper,
             PaperDownloadAttemptMapper attemptMapper,
             PaperDownloadClient downloadClient,
+            BehaviorTrackingService trackingService,
             @Value("${app.paper.download-dir}") String downloadDir) {
         this.paperMapper = paperMapper;
         this.attemptMapper = attemptMapper;
         this.downloadClient = downloadClient;
+        this.trackingService = trackingService;
         this.downloadRoot = Paths.get(downloadDir).toAbsolutePath().normalize();
     }
 
@@ -62,6 +66,8 @@ public class PaperDownloadService {
         if (paper == null) {
             throw new NotFoundException("论文不存在");
         }
+
+        trackingService.recordDownloadClick(requester.getId(), paperId);
 
         String downloadUrl = trimToNull(paper.getDownloadUrl());
         if (downloadUrl == null) {
