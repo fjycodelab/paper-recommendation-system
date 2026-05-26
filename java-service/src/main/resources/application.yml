@@ -44,6 +44,7 @@ app:
       timeout-ms: ${APP_ARXIV_TIMEOUT_MS:8000}
   behavior:
     topic: ${APP_BEHAVIOR_TOPIC:paper.behavior.events}
+    consumer-auto-startup: ${APP_BEHAVIOR_CONSUMER_AUTO_STARTUP:true}
     stats-cache-key: ${APP_BEHAVIOR_STATS_CACHE_KEY:behavior:stats:global}
     stats-cache-ttl-seconds: ${APP_BEHAVIOR_STATS_CACHE_TTL_SECONDS:60}
     stats-lock-key: ${APP_BEHAVIOR_STATS_LOCK_KEY:behavior:stats:rebuild:lock}

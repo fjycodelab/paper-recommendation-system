@@ -14,14 +14,14 @@
 - [x] 3a: 编写技术方案 plan 草稿
 - [x] 3b: plan review 通过，开始按任务实施
 
-启动于: 2026-05-26。当前步骤: T4 Kafka 行为生产者、消费者和幂等落库。
+启动于: 2026-05-26。当前步骤: T5 隐式行为接入业务入口和最近浏览 Redis。
 
 Plan 任务拆解:
 
 - [x] T1: Kafka 依赖、配置与数据库结构
 - [x] T2: 收藏和评分后端强状态 API
 - [x] T3: 用户感知论文列表、详情、我的收藏
-- [ ] T4: Kafka 行为生产者、消费者和幂等落库
+- [x] T4: Kafka 行为生产者、消费者和幂等落库
 - [ ] T5: 隐式行为接入业务入口和最近浏览 Redis
 - [ ] T6: 管理员全局行为统计、Redis 缓存和缓存重建锁
 - [ ] T7: 前端收藏、评分、我的收藏和最近浏览
@@ -53,6 +53,17 @@ Spec 003 T3 验收记录:
 - 新增 Mapper 批量查询收藏、评分和收藏论文 id，服务层保持论文响应顺序并过滤已软删除论文。
 - 新增/更新 service/controller 测试，覆盖用户状态补充、我的收藏、未登录访问 401 和详情缺失 404。
 - 验证: Java `mvn test` 通过，`Tests run: 109, Failures: 0, Errors: 0, Skipped: 4`。
+- 旧 Repository 名称检查通过: 未发现 `ResearchTagRepository`、`PaperRepository`、`PaperTagRepository`、`UserRepository` 残留。
+
+Spec 003 T4 验收记录:
+
+- 新增 `BehaviorEventMessage`，作为 Kafka 行为消息 JSON 载荷，包含 `eventId`、用户、论文、行为类型、搜索字段、标签、metadata 和发生时间。
+- 新增 `BehaviorEventProducer`，生成 `eventId`/`occurredAt`，按 `userId` 作为 Kafka key 发送到 `paper.behavior.events`。
+- 新增 `BehaviorEventConsumer`，使用 `@KafkaListener` 消费行为消息，反序列化后写入 `paper_behavior_events`。
+- `PaperBehaviorEventMapper` 新增 `INSERT IGNORE` 幂等落库，依赖 `event_id` 唯一键处理 Kafka 重试或重复投递。
+- 新增 test-only 配置关闭 Kafka listener 自动启动，避免单元测试在本机未启动 Kafka 时产生连接噪音；生产配置默认仍自动启动。
+- 新增 Producer/Consumer 单测，覆盖消息生成、Kafka 发送参数、非法消息、消费落库和重复 `eventId` 幂等。
+- 验证: Java `mvn test` 通过，`Tests run: 116, Failures: 0, Errors: 0, Skipped: 4`。
 - 旧 Repository 名称检查通过: 未发现 `ResearchTagRepository`、`PaperRepository`、`PaperTagRepository`、`UserRepository` 残留。
 
 ---
