@@ -193,6 +193,7 @@ Spec 001 追加约束记录:
 - 已决策: Spec 003 管理端第一版只做全局统计，不展示用户级明细。
 - 已决策: Spec 003 使用 Kafka 承载隐式行为消息；Redis 用于最近浏览缓存、管理员统计缓存和缓存重建锁。
 - 已决策: Spec 003 不做推荐、embedding 和热门论文排序。
+- 已决策: GitHub 仓库使用 `fjycodelab/paper-recommendation-system`，阶段性本地提交后同步推送；见 `docs/decisions/003-github-repository-and-sync-policy.md`。
 
 ---
 

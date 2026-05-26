@@ -2,7 +2,14 @@
 
 面向科研文献管理场景的后端与算法服务项目。系统围绕论文信息管理、用户收藏评分、研究方向标签、论文语义相似度和个性化推荐结果生成展开。
 
-当前 Spec 001 已完成登录认证与项目基础骨架，Spec 002 已完成论文信息、两级研究方向标签、arXiv 样例导入、下载尝试和前端论文工作台。代码统一放在本目录下，按 Vibe Coding V3 的路径 A 推进：先 spec，再 plan，再按任务逐个实现和验证。
+当前 Spec 001 已完成登录认证与项目基础骨架，Spec 002 已完成论文信息、两级研究方向标签、arXiv 样例导入、下载尝试和前端论文工作台。Spec 003 正在实现用户收藏评分与行为记录。代码统一放在本目录下，按 Vibe Coding V3 的路径 A 推进：先 spec，再 plan，再按任务逐个实现和验证。
+
+## 代码仓库
+
+- GitHub: [fjycodelab/paper-recommendation-system](https://github.com/fjycodelab/paper-recommendation-system)
+- 原始占位仓库名 `fjycodelab/java` 已改为 `paper-recommendation-system`，避免仓库名过泛，方便展示项目主题。
+- 协作约定: 每完成一个可验证 task，或一小段连续本地提交后，将本地提交同步推送到线上仓库。
+- 默认分支: `main`。
 
 ## 技术栈
 
