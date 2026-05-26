@@ -83,14 +83,17 @@ class PaperControllerTest {
 
     @Test
     void returnsPagedActivePapers() throws Exception {
-        when(paperService.list(eq(2), eq(5), any(PaperSearchRequest.class))).thenReturn(new PaperPageResponse(
+        stubLoggedInUser("token-user", user());
+        when(paperService.list(eq(2), eq(5), any(PaperSearchRequest.class), any(UserResponse.class)))
+                .thenReturn(new PaperPageResponse(
                 Arrays.asList(response(2L, "Second", "ACTIVE")),
                 12L,
                 2,
                 5
         ));
 
-        mockMvc.perform(get("/api/papers?page=2&pageSize=5"))
+        mockMvc.perform(get("/api/papers?page=2&pageSize=5")
+                        .header("Authorization", "Bearer token-user"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(12L))
                 .andExpect(jsonPath("$.page").value(2))
@@ -100,10 +103,12 @@ class PaperControllerTest {
 
     @Test
     void acceptsSearchQueryParameters() throws Exception {
-        when(paperService.list(eq(1), eq(10), any(PaperSearchRequest.class)))
+        stubLoggedInUser("token-user", user());
+        when(paperService.list(eq(1), eq(10), any(PaperSearchRequest.class), any(UserResponse.class)))
                 .thenReturn(new PaperPageResponse(Arrays.asList(response(3L, "Search Result", "ACTIVE")), 1L, 1, 10));
 
         mockMvc.perform(get("/api/papers")
+                        .header("Authorization", "Bearer token-user")
                         .param("page", "1")
                         .param("pageSize", "10")
                         .param("title", "recommend")
@@ -118,9 +123,11 @@ class PaperControllerTest {
 
     @Test
     void returnsPaperDetail() throws Exception {
-        when(paperService.get(9L)).thenReturn(response(9L, "A Paper", "ACTIVE"));
+        stubLoggedInUser("token-user", user());
+        when(paperService.get(eq(9L), any(UserResponse.class))).thenReturn(response(9L, "A Paper", "ACTIVE"));
 
-        mockMvc.perform(get("/api/papers/9"))
+        mockMvc.perform(get("/api/papers/9")
+                        .header("Authorization", "Bearer token-user"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(9L))
                 .andExpect(jsonPath("$.title").value("A Paper"));
@@ -128,11 +135,33 @@ class PaperControllerTest {
 
     @Test
     void mapsMissingPaperTo404() throws Exception {
-        when(paperService.get(99L)).thenThrow(new NotFoundException("论文不存在"));
+        stubLoggedInUser("token-user", user());
+        when(paperService.get(eq(99L), any(UserResponse.class))).thenThrow(new NotFoundException("论文不存在"));
 
-        mockMvc.perform(get("/api/papers/99"))
+        mockMvc.perform(get("/api/papers/99")
+                        .header("Authorization", "Bearer token-user"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("论文不存在"));
+    }
+
+    @Test
+    void rejectsPaperListWithoutLogin() throws Exception {
+        mockMvc.perform(get("/api/papers"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("未登录"));
+    }
+
+    @Test
+    void returnsMyFavoritesForLoggedInUser() throws Exception {
+        stubLoggedInUser("token-user", user());
+        when(paperService.listFavorites(eq(1), eq(10), any(UserResponse.class)))
+                .thenReturn(new PaperPageResponse(Arrays.asList(response(3L, "Favorite", "ACTIVE")), 1L, 1, 10));
+
+        mockMvc.perform(get("/api/me/favorites?page=1&pageSize=10")
+                        .header("Authorization", "Bearer token-user"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(1L))
+                .andExpect(jsonPath("$.items[0].title").value("Favorite"));
     }
 
     @Test
@@ -233,6 +262,16 @@ class PaperControllerTest {
                 "2026-05-25T00:00",
                 "2026-05-25T00:00"
         );
+    }
+
+    private void stubLoggedInUser(String token, UserResponse user) {
+        when(authService.authenticateToken(token))
+                .thenReturn(new AuthenticatedUser(user.getId(), user.getUsername(), user.getRole(), user.getStatus()));
+        when(authService.currentUser()).thenReturn(user);
+    }
+
+    private static UserResponse user() {
+        return new UserResponse(2L, "alice", "USER", "ACTIVE");
     }
 }
 

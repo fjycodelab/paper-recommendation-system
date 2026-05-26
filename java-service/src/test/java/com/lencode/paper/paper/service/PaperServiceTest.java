@@ -19,6 +19,9 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.dao.DuplicateKeyException;
 
 import com.lencode.paper.auth.vo.UserResponse;
+import com.lencode.paper.behavior.entity.PaperRating;
+import com.lencode.paper.behavior.mapper.PaperFavoriteMapper;
+import com.lencode.paper.behavior.mapper.PaperRatingMapper;
 import com.lencode.paper.common.exception.BadRequestException;
 import com.lencode.paper.common.exception.NotFoundException;
 import com.lencode.paper.paper.dto.CreatePaperRequest;
@@ -37,7 +40,15 @@ class PaperServiceTest {
     private final PaperMapper paperMapper = mock(PaperMapper.class);
     private final PaperTagMapper paperTagMapper = mock(PaperTagMapper.class);
     private final ResearchTagMapper tagMapper = mock(ResearchTagMapper.class);
-    private final PaperService paperService = new PaperService(paperMapper, paperTagMapper, tagMapper);
+    private final PaperFavoriteMapper favoriteMapper = mock(PaperFavoriteMapper.class);
+    private final PaperRatingMapper ratingMapper = mock(PaperRatingMapper.class);
+    private final PaperService paperService = new PaperService(
+            paperMapper,
+            paperTagMapper,
+            tagMapper,
+            favoriteMapper,
+            ratingMapper
+    );
 
     @Test
     void createsPaperWithEmptyBusinessFields() {
@@ -167,6 +178,24 @@ class PaperServiceTest {
     }
 
     @Test
+    void returnsPagedActivePapersWithUserState() {
+        UserResponse user = new UserResponse(7L, "alice", "USER", "ACTIVE");
+        when(paperMapper.selectActivePage(isNull(), eq(5), eq(5)))
+                .thenReturn(Arrays.asList(paper(2L, "Second", "ACTIVE", 1L)));
+        when(paperMapper.countActive(isNull())).thenReturn(12L);
+        when(paperTagMapper.selectTagsByPaperId(2L)).thenReturn(Collections.emptyList());
+        when(favoriteMapper.selectActivePaperIdsForUserAndPaperIds(7L, Arrays.asList(2L)))
+                .thenReturn(Arrays.asList(2L));
+        when(ratingMapper.selectByUserAndPaperIds(7L, Arrays.asList(2L)))
+                .thenReturn(Arrays.asList(rating(2L, 4)));
+
+        PaperPageResponse response = paperService.list(2, 5, null, user);
+
+        assertThat(response.getItems().get(0).isFavorited()).isTrue();
+        assertThat(response.getItems().get(0).getRating()).isEqualTo(4);
+    }
+
+    @Test
     void returnsSearchResultsWithTags() {
         PaperSearchRequest search = new PaperSearchRequest(" paper ", " Alice ", 2026, " arXiv ", 2L, " embedding ");
         when(paperMapper.selectActivePage(any(PaperSearchRequest.class), eq(10), eq(0)))
@@ -202,6 +231,47 @@ class PaperServiceTest {
 
         assertThat(response.getTitle()).isEqualTo("Paper");
         assertThat(response.getTags()).extracting(TagResponse::getName).containsExactly("推荐系统");
+    }
+
+    @Test
+    void getsActivePaperByIdWithUserState() {
+        UserResponse user = new UserResponse(7L, "alice", "USER", "ACTIVE");
+        when(paperMapper.selectActiveById(1L)).thenReturn(paper(1L, "Paper", "ACTIVE", 7L));
+        when(paperTagMapper.selectTagsByPaperId(1L)).thenReturn(Collections.emptyList());
+        when(favoriteMapper.selectActivePaperIdsForUserAndPaperIds(7L, Arrays.asList(1L)))
+                .thenReturn(Arrays.asList(1L));
+        when(ratingMapper.selectByUserAndPaperIds(7L, Arrays.asList(1L)))
+                .thenReturn(Arrays.asList(rating(1L, 5)));
+
+        PaperResponse response = paperService.get(1L, user);
+
+        assertThat(response.isFavorited()).isTrue();
+        assertThat(response.getRating()).isEqualTo(5);
+    }
+
+    @Test
+    void returnsPagedFavoritePapersForUser() {
+        UserResponse user = new UserResponse(7L, "alice", "USER", "ACTIVE");
+        when(favoriteMapper.selectActivePaperIdsByUser(7L, 10, 0)).thenReturn(Arrays.asList(3L, 2L));
+        when(favoriteMapper.countActiveByUser(7L)).thenReturn(2L);
+        when(paperMapper.selectActiveByIds(Arrays.asList(3L, 2L))).thenReturn(Arrays.asList(
+                paper(2L, "Second", "ACTIVE", 1L),
+                paper(3L, "Third", "ACTIVE", 1L)
+        ));
+        when(paperTagMapper.selectTagsByPaperId(2L)).thenReturn(Collections.emptyList());
+        when(paperTagMapper.selectTagsByPaperId(3L)).thenReturn(Collections.emptyList());
+        when(favoriteMapper.selectActivePaperIdsForUserAndPaperIds(7L, Arrays.asList(3L, 2L)))
+                .thenReturn(Arrays.asList(3L, 2L));
+        when(ratingMapper.selectByUserAndPaperIds(7L, Arrays.asList(3L, 2L)))
+                .thenReturn(Arrays.asList(rating(3L, 5)));
+
+        PaperPageResponse response = paperService.listFavorites(1, 10, user);
+
+        assertThat(response.getTotal()).isEqualTo(2L);
+        assertThat(response.getItems()).extracting(PaperResponse::getId).containsExactly(3L, 2L);
+        assertThat(response.getItems()).allMatch(PaperResponse::isFavorited);
+        assertThat(response.getItems().get(0).getRating()).isEqualTo(5);
+        assertThat(response.getItems().get(1).getRating()).isNull();
     }
 
     @Test
@@ -319,6 +389,14 @@ class PaperServiceTest {
                 LocalDateTime.parse("2026-05-25T00:00:00"),
                 LocalDateTime.parse("2026-05-25T00:00:00")
         );
+    }
+
+    private static PaperRating rating(Long paperId, Integer value) {
+        PaperRating rating = new PaperRating();
+        rating.setUserId(7L);
+        rating.setPaperId(paperId);
+        rating.setRating(value);
+        return rating;
     }
 
     private static ResearchTag tag(Long id, Long parentId, String name, int level, String status) {

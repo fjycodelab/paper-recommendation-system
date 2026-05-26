@@ -1,5 +1,7 @@
 package com.lencode.paper.behavior.mapper;
 
+import java.util.List;
+
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -20,4 +22,18 @@ public interface PaperRatingMapper extends BaseMapper<PaperRating> {
     @Select("SELECT id, user_id, paper_id, rating, created_at, updated_at "
             + "FROM paper_ratings WHERE user_id = #{userId} AND paper_id = #{paperId}")
     PaperRating selectByUserAndPaper(@Param("userId") Long userId, @Param("paperId") Long paperId);
+
+    @Select({
+            "<script>",
+            "SELECT id, user_id, paper_id, rating, created_at, updated_at FROM paper_ratings",
+            " WHERE user_id = #{userId}",
+            " AND paper_id IN",
+            "<foreach collection='paperIds' item='paperId' open='(' separator=',' close=')'>",
+            "#{paperId}",
+            "</foreach>",
+            "</script>"
+    })
+    List<PaperRating> selectByUserAndPaperIds(
+            @Param("userId") Long userId,
+            @Param("paperIds") List<Long> paperIds);
 }

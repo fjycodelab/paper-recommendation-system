@@ -22,6 +22,17 @@ public interface PaperMapper extends BaseMapper<Paper> {
 
     @Select({
             "<script>",
+            "SELECT ", COLUMNS, " FROM papers p",
+            " WHERE p.status = 'ACTIVE' AND p.id IN",
+            "<foreach collection='ids' item='id' open='(' separator=',' close=')'>",
+            "#{id}",
+            "</foreach>",
+            "</script>"
+    })
+    List<Paper> selectActiveByIds(@Param("ids") List<Long> ids);
+
+    @Select({
+            "<script>",
             "SELECT ", COLUMNS,
             " FROM papers p",
             "<if test='search != null and search.tagId != null'>",

@@ -3,15 +3,23 @@ package com.lencode.paper.paper.service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.lencode.paper.common.exception.BadRequestException;
 import com.lencode.paper.auth.vo.UserResponse;
+import com.lencode.paper.behavior.entity.PaperRating;
+import com.lencode.paper.behavior.mapper.PaperFavoriteMapper;
+import com.lencode.paper.behavior.mapper.PaperRatingMapper;
+import com.lencode.paper.common.exception.BadRequestException;
 import com.lencode.paper.common.exception.NotFoundException;
 import com.lencode.paper.paper.dto.CreatePaperRequest;
 import com.lencode.paper.paper.dto.PaperSearchRequest;
@@ -37,14 +45,20 @@ public class PaperService {
     private final PaperMapper paperMapper;
     private final PaperTagMapper paperTagMapper;
     private final ResearchTagMapper tagMapper;
+    private final PaperFavoriteMapper favoriteMapper;
+    private final PaperRatingMapper ratingMapper;
 
     public PaperService(
             PaperMapper paperMapper,
             PaperTagMapper paperTagMapper,
-            ResearchTagMapper tagMapper) {
+            ResearchTagMapper tagMapper,
+            PaperFavoriteMapper favoriteMapper,
+            PaperRatingMapper ratingMapper) {
         this.paperMapper = paperMapper;
         this.paperTagMapper = paperTagMapper;
         this.tagMapper = tagMapper;
+        this.favoriteMapper = favoriteMapper;
+        this.ratingMapper = ratingMapper;
     }
 
     @Transactional
@@ -79,6 +93,14 @@ public class PaperService {
     }
 
     public PaperPageResponse list(Integer page, Integer pageSize, PaperSearchRequest search) {
+        return listInternal(page, pageSize, search, null);
+    }
+
+    public PaperPageResponse list(Integer page, Integer pageSize, PaperSearchRequest search, UserResponse user) {
+        return listInternal(page, pageSize, search, requireUserId(user));
+    }
+
+    private PaperPageResponse listInternal(Integer page, Integer pageSize, PaperSearchRequest search, Long userId) {
         int safePage = page == null ? DEFAULT_PAGE : page;
         int safePageSize = pageSize == null ? DEFAULT_PAGE_SIZE : pageSize;
         validatePage(safePage, safePageSize);
@@ -90,10 +112,18 @@ public class PaperService {
                 .map(paper -> PaperResponse.from(paper, loadTagResponses(paper.getId())))
                 .collect(Collectors.toList());
         Long total = paperMapper.countActive(normalizedSearch);
-        return new PaperPageResponse(items, total == null ? 0L : total, safePage, safePageSize);
+        return new PaperPageResponse(enrichResponses(items, userId), total == null ? 0L : total, safePage, safePageSize);
     }
 
     public PaperResponse get(Long id) {
+        return getInternal(id, null);
+    }
+
+    public PaperResponse get(Long id, UserResponse user) {
+        return getInternal(id, requireUserId(user));
+    }
+
+    private PaperResponse getInternal(Long id, Long userId) {
         if (id == null) {
             throw new BadRequestException("论文 id 不能为空");
         }
@@ -101,7 +131,30 @@ public class PaperService {
         if (paper == null) {
             throw new NotFoundException("论文不存在");
         }
-        return PaperResponse.from(paper, loadTagResponses(paper.getId()));
+        return enrichResponse(PaperResponse.from(paper, loadTagResponses(paper.getId())), userId);
+    }
+
+    public PaperPageResponse listFavorites(Integer page, Integer pageSize, UserResponse user) {
+        Long userId = requireUserId(user);
+        int safePage = page == null ? DEFAULT_PAGE : page;
+        int safePageSize = pageSize == null ? DEFAULT_PAGE_SIZE : pageSize;
+        validatePage(safePage, safePageSize);
+
+        int offset = (safePage - 1) * safePageSize;
+        List<Long> paperIds = nullToEmpty(favoriteMapper.selectActivePaperIdsByUser(userId, safePageSize, offset));
+        List<PaperResponse> items = Collections.emptyList();
+        if (!paperIds.isEmpty()) {
+            Map<Long, Paper> paperById = nullToEmpty(paperMapper.selectActiveByIds(paperIds))
+                    .stream()
+                    .collect(Collectors.toMap(Paper::getId, paper -> paper, (left, right) -> left, HashMap::new));
+            items = paperIds.stream()
+                    .map(paperById::get)
+                    .filter(Objects::nonNull)
+                    .map(paper -> PaperResponse.from(paper, loadTagResponses(paper.getId())))
+                    .collect(Collectors.toList());
+        }
+        Long total = favoriteMapper.countActiveByUser(userId);
+        return new PaperPageResponse(enrichResponses(items, userId), total == null ? 0L : total, safePage, safePageSize);
     }
 
     @Transactional
@@ -228,6 +281,43 @@ public class PaperService {
                 .collect(Collectors.toList());
     }
 
+    private PaperResponse enrichResponse(PaperResponse response, Long userId) {
+        if (response == null || userId == null) {
+            return response;
+        }
+        return enrichResponses(Collections.singletonList(response), userId).get(0);
+    }
+
+    private List<PaperResponse> enrichResponses(List<PaperResponse> responses, Long userId) {
+        if (userId == null || responses == null || responses.isEmpty()) {
+            return responses;
+        }
+
+        List<Long> paperIds = responses.stream()
+                .map(PaperResponse::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        if (paperIds.isEmpty()) {
+            return responses;
+        }
+
+        Set<Long> favoritedPaperIds = new HashSet<>(
+                nullToEmpty(favoriteMapper.selectActivePaperIdsForUserAndPaperIds(userId, paperIds)));
+        Map<Long, Integer> ratingByPaperId = nullToEmpty(ratingMapper.selectByUserAndPaperIds(userId, paperIds))
+                .stream()
+                .collect(Collectors.toMap(
+                        PaperRating::getPaperId,
+                        PaperRating::getRating,
+                        (left, right) -> left
+                ));
+        return responses.stream()
+                .map(response -> response.withUserState(
+                        favoritedPaperIds.contains(response.getId()),
+                        ratingByPaperId.get(response.getId())))
+                .collect(Collectors.toList());
+    }
+
     private static void validatePage(int page, int pageSize) {
         if (page < 1) {
             throw new BadRequestException("页码必须大于等于 1");
@@ -235,6 +325,13 @@ public class PaperService {
         if (pageSize < 1 || pageSize > MAX_PAGE_SIZE) {
             throw new BadRequestException("每页数量必须在 1 到 100 之间");
         }
+    }
+
+    private static Long requireUserId(UserResponse user) {
+        if (user == null || user.getId() == null) {
+            throw new BadRequestException("用户不能为空");
+        }
+        return user.getId();
     }
 
     private static Paper toPaper(CreatePaperRequest request, Long submittedBy, LocalDateTime publishedAt) {
@@ -307,6 +404,10 @@ public class PaperService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private static <T> List<T> nullToEmpty(List<T> values) {
+        return values == null ? Collections.emptyList() : values;
     }
 }
 

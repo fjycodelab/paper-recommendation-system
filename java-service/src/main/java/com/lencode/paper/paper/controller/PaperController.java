@@ -45,16 +45,27 @@ public class PaperController {
             @RequestParam(value = "source", required = false) String source,
             @RequestParam(value = "tagId", required = false) Long tagId,
             @RequestParam(value = "abstractKeyword", required = false) String abstractKeyword) {
+        UserResponse user = authService.currentUser();
         return ResponseEntity.ok(paperService.list(
                 page,
                 pageSize,
-                new PaperSearchRequest(title, author, year, source, tagId, abstractKeyword)
+                new PaperSearchRequest(title, author, year, source, tagId, abstractKeyword),
+                user
         ));
     }
 
     @GetMapping("/api/papers/{id}")
     public ResponseEntity<PaperResponse> get(@PathVariable Long id) {
-        return ResponseEntity.ok(paperService.get(id));
+        UserResponse user = authService.currentUser();
+        return ResponseEntity.ok(paperService.get(id, user));
+    }
+
+    @GetMapping("/api/me/favorites")
+    public ResponseEntity<PaperPageResponse> listFavorites(
+            @RequestParam(value = "page", required = false) Integer page,
+            @RequestParam(value = "pageSize", required = false) Integer pageSize) {
+        UserResponse user = authService.currentUser();
+        return ResponseEntity.ok(paperService.listFavorites(page, pageSize, user));
     }
 
     @PutMapping("/api/admin/papers/{id}")

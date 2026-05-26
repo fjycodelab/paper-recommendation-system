@@ -25,6 +25,8 @@ public class PaperResponse {
     private final String status;
     private final Long submittedBy;
     private final List<TagResponse> tags;
+    private final boolean favorited;
+    private final Integer rating;
     private final String createdAt;
     private final String updatedAt;
 
@@ -49,7 +51,7 @@ public class PaperResponse {
         this(
                 id, title, authors, abstractText, publishYear, source, sourcePaperId,
                 doi, sourceUrl, downloadUrl, keywords, citationCount, publishedAt,
-                status, submittedBy, Collections.emptyList(), createdAt, updatedAt
+                status, submittedBy, Collections.emptyList(), false, null, createdAt, updatedAt
         );
     }
 
@@ -72,6 +74,34 @@ public class PaperResponse {
             List<TagResponse> tags,
             String createdAt,
             String updatedAt) {
+        this(
+                id, title, authors, abstractText, publishYear, source, sourcePaperId,
+                doi, sourceUrl, downloadUrl, keywords, citationCount, publishedAt,
+                status, submittedBy, tags, false, null, createdAt, updatedAt
+        );
+    }
+
+    private PaperResponse(
+            Long id,
+            String title,
+            String authors,
+            String abstractText,
+            Integer publishYear,
+            String source,
+            String sourcePaperId,
+            String doi,
+            String sourceUrl,
+            String downloadUrl,
+            String keywords,
+            Integer citationCount,
+            String publishedAt,
+            String status,
+            Long submittedBy,
+            List<TagResponse> tags,
+            boolean favorited,
+            Integer rating,
+            String createdAt,
+            String updatedAt) {
         this.id = id;
         this.title = title;
         this.authors = authors;
@@ -88,6 +118,8 @@ public class PaperResponse {
         this.status = status;
         this.submittedBy = submittedBy;
         this.tags = tags == null ? Collections.emptyList() : tags;
+        this.favorited = favorited;
+        this.rating = rating;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -111,6 +143,31 @@ public class PaperResponse {
                 paper.getSubmittedBy(),
                 formatDateTime(paper.getCreatedAt()),
                 formatDateTime(paper.getUpdatedAt())
+        );
+    }
+
+    public PaperResponse withUserState(boolean favorited, Integer rating) {
+        return new PaperResponse(
+                id,
+                title,
+                authors,
+                abstractText,
+                publishYear,
+                source,
+                sourcePaperId,
+                doi,
+                sourceUrl,
+                downloadUrl,
+                keywords,
+                citationCount,
+                publishedAt,
+                status,
+                submittedBy,
+                tags,
+                favorited,
+                rating,
+                createdAt,
+                updatedAt
         );
     }
 
@@ -199,6 +256,14 @@ public class PaperResponse {
 
     public List<TagResponse> getTags() {
         return tags;
+    }
+
+    public boolean isFavorited() {
+        return favorited;
+    }
+
+    public Integer getRating() {
+        return rating;
     }
 
     public String getCreatedAt() {

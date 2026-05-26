@@ -14,13 +14,13 @@
 - [x] 3a: 编写技术方案 plan 草稿
 - [x] 3b: plan review 通过，开始按任务实施
 
-启动于: 2026-05-26。当前步骤: T3 用户感知论文列表、详情、我的收藏。
+启动于: 2026-05-26。当前步骤: T4 Kafka 行为生产者、消费者和幂等落库。
 
 Plan 任务拆解:
 
 - [x] T1: Kafka 依赖、配置与数据库结构
 - [x] T2: 收藏和评分后端强状态 API
-- [ ] T3: 用户感知论文列表、详情、我的收藏
+- [x] T3: 用户感知论文列表、详情、我的收藏
 - [ ] T4: Kafka 行为生产者、消费者和幂等落库
 - [ ] T5: 隐式行为接入业务入口和最近浏览 Redis
 - [ ] T6: 管理员全局行为统计、Redis 缓存和缓存重建锁
@@ -44,6 +44,16 @@ Spec 003 T2 验收记录:
 - 收藏和评分在写入前校验论文必须存在且未软删除；非法评分返回明确错误。
 - 新增 service/controller 测试，覆盖收藏、取消收藏、重复状态读取、非法评分、论文不存在和 API 响应。
 - 验证: Java `mvn test` 通过，`Tests run: 104, Failures: 0, Errors: 0, Skipped: 4`。
+
+Spec 003 T3 验收记录:
+
+- `PaperResponse` 新增当前用户 `favorited` 和 `rating` 字段，列表和详情会按登录用户批量补充收藏/评分状态。
+- `GET /api/papers` 和 `GET /api/papers/{id}` 改为登录后访问，避免 Spec 003 匿名行为边界不清。
+- 新增 `GET /api/me/favorites`，按收藏更新时间分页返回当前用户收藏且仍为正常状态的论文。
+- 新增 Mapper 批量查询收藏、评分和收藏论文 id，服务层保持论文响应顺序并过滤已软删除论文。
+- 新增/更新 service/controller 测试，覆盖用户状态补充、我的收藏、未登录访问 401 和详情缺失 404。
+- 验证: Java `mvn test` 通过，`Tests run: 109, Failures: 0, Errors: 0, Skipped: 4`。
+- 旧 Repository 名称检查通过: 未发现 `ResearchTagRepository`、`PaperRepository`、`PaperTagRepository`、`UserRepository` 残留。
 
 ---
 
